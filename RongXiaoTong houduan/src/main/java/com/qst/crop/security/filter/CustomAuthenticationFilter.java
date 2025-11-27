@@ -19,29 +19,40 @@ import java.io.InputStream;
  */
 public class CustomAuthenticationFilter extends UsernamePasswordAuthenticationFilter {
     @Override
-    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException {
-
+    public Authentication attemptAuthentication(HttpServletRequest request, HttpServletResponse response) throws AuthenticationException
+    {
+        UsernamePasswordAuthenticationToken authRequest = null;
         if(request.getContentType().equals(MediaType.APPLICATION_JSON_UTF8_VALUE)
-                ||request.getContentType().equals(MediaType.APPLICATION_JSON_VALUE)){
+                ||request.getContentType().equals(MediaType.APPLICATION_JSON_VALUE)) {
             //use jackson to deserialize json
             ObjectMapper mapper = new ObjectMapper();
-            UsernamePasswordAuthenticationToken authRequest = null;
-            try (InputStream is = request.getInputStream()){
-                AuthenticationBean authenticationBean = mapper.readValue(is, AuthenticationBean.class);
-                authRequest = new UsernamePasswordAuthenticationToken(
-                        authenticationBean.getUsername(), authenticationBean.getPassword());
-            }catch (IOException e) {
-                e.printStackTrace();
-                authRequest = new UsernamePasswordAuthenticationToken(
-                        "", "");
-            }finally {
-                setDetails(request, authRequest);
-                return this.getAuthenticationManager().authenticate(authRequest);
+            //*UsernamePasswordAuthenticationToken authRequest = null;
+
+            /**if (MediaType.APPLICATION_JSON_VALUE.equals(request.getContentType())) {
+                ObjectMapper mapper = new ObjectMapper();
+                UsernamePasswordAuthenticationToken authRequest = null;**/
+            try (InputStream is = request.getInputStream()) {
+                    AuthenticationBean authenticationBean = mapper.readValue(is, AuthenticationBean.class);
+                    authRequest = new UsernamePasswordAuthenticationToken(
+                            authenticationBean.getUsername(), authenticationBean.getPassword());
+            } catch (IOException e) {
+                    e.printStackTrace();
+                    authRequest = new UsernamePasswordAuthenticationToken(
+                            "", "");
+            } finally {
+                    setDetails(request, authRequest);
+                    //*return this.getAuthenticationManager().authenticate(authRequest);
             }
-        }
-        //transmit it to UsernamePasswordAuthenticationFilter
-        else {
+            if (authRequest == null) {
+                authRequest = new UsernamePasswordAuthenticationToken("","");
+            }
+
+
+            return this.getAuthenticationManager().authenticate(authRequest);
+            //transmit it to UsernamePasswordAuthenticationFilter
+        }else {
             return super.attemptAuthentication(request, response);
         }
     }
 }
+

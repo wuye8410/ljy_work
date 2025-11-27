@@ -52,24 +52,24 @@ public class JwtAuthenticationTokenFilter extends OncePerRequestFilter {
     }
 
     private String extractToken(HttpServletRequest request) {
-        // 首先从请求头中获取token
-        String token = request.getHeader(jwtTokenUtil.getHeader());
-        
-        // 如果请求头中没有token，尝试从请求参数中获取
+        // 1. 优先从请求头获取
+        String token = request.getHeader(JwtTokenUtil.getHeader());
+
+        // 2. 头中没有则从参数"token"获取
         if (StringUtils.isEmpty(token)) {
             token = request.getParameter("token");
         }
-        
-        // 如果请求参数中没有token，尝试从请求体中获取
+
+        // 3. 仍没有则从参数"Authorization"获取
         if (StringUtils.isEmpty(token)) {
             token = request.getParameter("Authorization");
         }
-        
-        // 如果token以"Bearer "开头，去掉这个前缀
+
+        // 4. 处理"Bearer "前缀（用新变量接收，避免修改原token）
         if (!StringUtils.isEmpty(token) && token.startsWith("Bearer ")) {
-            token = token.substring(7);
+            return token.substring(7); // 直接返回处理后的值
         }
-        
-        return token;
+
+        return token; // 无需修改时直接返回
     }
 }
