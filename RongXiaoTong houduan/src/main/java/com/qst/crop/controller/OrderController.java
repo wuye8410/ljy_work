@@ -14,6 +14,7 @@ import com.qst.crop.service.SellPurchaseService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.BindingResult;
@@ -22,6 +23,12 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -101,6 +108,74 @@ public class OrderController {
         orderService.add(order);
         return new Result(true, StatusCode.OK, "添加成功",null);
     }
+   // 注意：确保OrderController的类注解（如@RestController、@RequestMapping）已正确添加
+   /**public class OrderController {
+
+       @Operation(summary = "添加商品")
+       // 支持文件上传格式（consumes指定请求格式）
+       @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+       public Result<String> add(
+               @RequestParam("title") String title,       // 商品标题
+               @RequestParam("description") String description, // 详细介绍
+               @RequestParam("price") BigDecimal price,   // 定价
+               @RequestParam("images") MultipartFile[] images) { // 商品图片（多图）
+
+           // 1. 校验图片非空
+           if (images == null || images.length == 0) {
+               return new Result<>(false, StatusCode.ERROR, "添加失败", "商品图片不能为空");
+           }
+
+           // 2. 保存图片到服务器（nginx路径）
+           List<String> imageUrls = new ArrayList<>();
+           // 保存路径（注意：Windows路径用双反斜杠，或用正斜杠）
+           String uploadDir = "D:/nginx/html/images/file/order/";
+           File dir = new File(uploadDir);
+           if (!dir.exists()) {
+               dir.mkdirs(); // 创建目录（包括父目录）
+           }
+
+           for (MultipartFile image : images) {
+               if (image.isEmpty()) {
+                   continue;
+               }
+               // 生成唯一文件名（时间戳+原文件名，避免重复）
+               String fileName = System.currentTimeMillis() + "_" + image.getOriginalFilename();
+               File dest = new File(uploadDir + fileName);
+               try {
+                   image.transferTo(dest); // 保存文件到服务器
+                   // 图片访问路径（对应nginx的静态资源路径）
+                   String imageUrl = "/images/file/order/" + fileName;
+                   imageUrls.add(imageUrl);
+               } catch (IOException e) {
+                   e.printStackTrace();
+                   return new Result<>(false, StatusCode.ERROR, "添加失败", "图片上传失败");
+               }
+           }
+
+           // 3. 构建Order对象
+           Order order = new Order();
+           order.setTitle(title);
+           order.setDescription(description);
+           order.setPrice(price);
+           // 多图路径用逗号分隔保存
+           order.setImageUrls(String.join(",", imageUrls));
+
+           // 4. 设置用户和时间（加非空判断，避免未登录时的空指针）
+           var authentication = SecurityContextHolder.getContext().getAuthentication();
+           if (authentication != null && authentication.getPrincipal() instanceof UserDetails) {
+               UserDetails principal = (UserDetails) authentication.getPrincipal();
+               order.setOwnName(principal.getUsername());
+           } else {
+               return new Result<>(false, StatusCode.ERROR, "添加失败", "用户未登录");
+           }
+           order.setCreateTime(new Date());
+           order.setUpdateTime(new Date());
+
+           // 5. 保存订单到数据库
+           orderService.add(order);
+           return new Result<>(true, StatusCode.OK, "添加成功", null);
+       }
+   }**/
 
     //修改id订单
     @Operation(summary = "根据id修改商品")

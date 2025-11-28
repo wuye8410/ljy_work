@@ -17,22 +17,16 @@ spring:
     name: uploadService8007
   web:
     resources:
-      static-locations:
-      -  file:${application.upload-path}
-      - file:D:/nginx/html/images/file  # 改成父目录（包含avatar子目录）
-      #- file:D:/nginx/html/images/file/order  # nginx的order图片目录
-      #- file:D:/nginx/html/images/file/avatar  # nginx的avatar图片目录
-      #- file:d:/rongxiaotong/file/video  # 视频目录
+      static-locations: file:${application.upload-path}
   mvc:
-    #static-path-pattern: file:D:\nginx\html\images\file/order,file:D:\nginx\html\images\file/avatar,file:d:/rongxiaotong/file/video
-    #static-path-pattern: /file/**
-    static-path-pattern: /static/**  # 把/file改成/static，避开接口冲突
+    static-path-pattern: file:d:/Project/rongxiaotong/file/order, file:d:/Project/rongxiaotong/file/avatar, file:d:/Project/rongxiaotong/file/video
+
   data:
     redis:
       host: localhost
       port: 6379
 application:
-    upload-path: d:/rongxiaotong/file
+    upload-path: d:/Project/rongxiaotong/file
 
 # PageHelper 配置
 pagehelper:
