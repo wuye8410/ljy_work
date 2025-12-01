@@ -375,11 +375,12 @@
 
 <script setup>
 import { useRoute, useRouter } from "vue-router";
-import { ref, onMounted } from "vue";
+import { ref, reactive, onMounted } from "vue";
 import { ElMessage } from "element-plus";
 import { apiClient } from "../api/apiService.js";
 import { useStore } from "vuex";
-
+import { ElForm, ElFormItem, ElInput } from "element-plus"; // 注意：ElMessage 重复导入已移除
+import { validatePhone, validateIdCard, validatePositiveNumber } from "@/utils/validator";
 import bank01 from "@/assets/img/zgnyyh.png";
 import bank02 from "@/assets/img/zggsyh.png";
 import bank03 from "@/assets/img/zgjsyh.png";
@@ -406,30 +407,21 @@ let bankrepay = ref();
 
 onMounted(async () => {
   bankId.value = route.query.bankId;
-  //alert(bankId)
   bankicon.value = route.query.bankicon;
-  //alert(bankicon)
   bankname.value = route.query.bankname;
-  //alert(bankname)
   bankintro.value = route.query.bankintro;
-  //alert(bankintro)
   bankmoney.value = route.query.bankmoney;
-  //alert(bankmoney)
   bankrate.value = route.query.bankrate;
-  //alert(bankrate)
   bankrepay.value = route.query.bankrepay;
-  //alert(bankrepay)
 });
 
 const goBack = () => {
-  // 返回时携带当前页面状态（需配合路由的state配置）
   router.back();
 };
 const showLoanModal = ref(false);
-
 const combinationFlag = ref(false);
-
 const showCombinationModal = ref(false);
+
 const loanForm = ref({
   name: '',
   amount: '',
@@ -455,7 +447,7 @@ const combinationForm = ref({
   files: []
 });
 const fileInfo = ref('');
-const Allfile = ref([]);//在页面上展示的文件名
+const Allfile = ref([]);
 const DBfile = ref([]);
 
 const personalLoan = () => {
@@ -491,14 +483,14 @@ const handleFileUpload = async (event) => {
       formData.append("file", file);
 
       const response = await apiClient.post(
-        `${store.state.fileUploadRoad}/file/upload/info`,
-        formData,
-        {
-          headers: {
-            Authorization: window.localStorage.token,
-            "Content-Type": "multipart/form-data",
-          },
-        }
+          `${store.state.fileUploadRoad}/file/upload/info`,
+          formData,
+          {
+            headers: {
+              Authorization: window.localStorage.token,
+              "Content-Type": "multipart/form-data",
+            },
+          }
       );
 
       if (response.flag) {
@@ -519,21 +511,28 @@ const handleFileUpload = async (event) => {
   }
 };
 
+// 个人贷款提交
 const submitLoanApplication = async () => {
-  // Basic validation
+  try {
+    await loanFormRef.value.validate();
+  } catch (error) {
+    ElMessage.error("表单填写有误，请检查后重试！");
+    return;
+  }
+
   if (
-    !loanForm.value.name ||
-    !loanForm.value.amount ||
-    !loanForm.value.rate ||
-    !loanForm.value.term ||
-    !loanForm.value.contact ||
-    !loanForm.value.idNumber
+      !loanForm.value.name ||
+      !loanForm.value.amount ||
+      !loanForm.value.rate ||
+      !loanForm.value.term ||
+      !loanForm.value.contact ||
+      !loanForm.value.idNumber
   ) {
     ElMessage.error("申请信息必须完整");
     return;
   }
 
-    fileInfo.value = DBfile.value.join(';');
+  fileInfo.value = DBfile.value.join(';');
 
   if (!DBfile) {
     ElMessage.error("请上传至少一个文件");
@@ -551,54 +550,57 @@ const submitLoanApplication = async () => {
     fileInfo: fileInfo.value,
   });
 
-  const response = await apiClient.post(`/finance/add`, param.value, {
-    headers: {
-            Authorization: window.localStorage.token,
-          },
-  });
-  try{
-  if (response.flag == true) {
-    ElMessage.success("贷款申请已提交");
-    showLoanModal.value = false;
-
-    // Reset form
-    loanForm.value = {
-      name: "",
-      amount: "",
-      rate: "",
-      term: "",
-      contact: "",
-      idNumber: "",
-      files: [],
-    };
-    fileInfo.value = '';
-    Allfile.value=[];
-    DBfile.value=[];
-
-  } else {
-    ElMessage.error("贷款申请提交失败，请重新登录进行提交");
-  }
-} catch(e){
+  try {
+    const response = await apiClient.post(`/finance/add`, param.value, {
+      headers: {
+        Authorization: window.localStorage.token,
+      },
+    });
+    if (response.flag) {
+      ElMessage.success("贷款申请已提交");
+      showLoanModal.value = false;
+      loanForm.value = {
+        name: "",
+        amount: "",
+        rate: "",
+        term: "",
+        contact: "",
+        idNumber: "",
+        files: [],
+      };
+      fileInfo.value = '';
+      Allfile.value = [];
+      DBfile.value = [];
+    } else {
+      ElMessage.error("贷款申请提交失败，请重新登录进行提交");
+    }
+  } catch (e) {
     ElMessage.error("贷款申请提交失败，请正确填写信息或重新登录进行申请");
-}
-  //提交贷款申请
+  }
 };
 
+// 组合贷款提交
 const submitCombinationLoan = async () => {
-  // Basic validation
+  try {
+    await combinationFormRef.value.validate();
+  } catch (error) {
+    ElMessage.error("表单填写有误，请检查后重试！");
+    return;
+  }
+
   if (
-    !combinationForm.value.amount ||
-    !combinationForm.value.rate ||
-    !combinationForm.value.term ||
-    !combinationForm.value.realName ||
-    !combinationForm.value.phone ||
-    !combinationForm.value.idNum ||
-    !combinationForm.value.combinationName1 ||
-    !combinationForm.value.combinationPhone1 ||
-    !combinationForm.value.combinationIdnum1 ||
-    !combinationForm.value.combinationName2 ||
-    !combinationForm.value.combinationPhone2 ||
-    !combinationForm.value.combinationIdnum2
+      !combinationForm.value.amount ||
+      !combinationForm.value.rate ||
+      !combinationForm.value.term ||
+      !combinationForm.value.realName ||
+      !combinationForm.value.phone ||
+      !combinationForm.value.idNum ||
+      !combinationForm.value.combinationName1 ||
+      !combinationForm.value.combinationPhone1 ||
+      !combinationForm.value.combinationIdnum1 ||
+      !combinationForm.value.combinationName2 ||
+      !combinationForm.value.combinationPhone2 ||
+      !combinationForm.value.combinationIdnum2
   ) {
     ElMessage.error("请填写完整信息");
     return;
@@ -634,11 +636,10 @@ const submitCombinationLoan = async () => {
         Authorization: window.localStorage.token,
       },
     });
-    
+
     if (response.flag) {
       ElMessage.success("组合贷款申请已提交");
       showCombinationModal.value = false;
-      // Reset form
       combinationForm.value = {
         amount: '',
         rate: '',
@@ -655,13 +656,65 @@ const submitCombinationLoan = async () => {
         files: []
       };
       fileInfo.value = '';
-      Allfile.value=[];
-      DBfile.value=[];
+      Allfile.value = [];
+      DBfile.value = [];
     } else {
       ElMessage.error(response.message);
     }
-  } catch (error) {
-    ElMessage.error("贷款申请提交失败，请正确填写信息或重新登录进行申请");
+  } catch (error) {  // 补充了缺失的catch块
+    ElMessage.error(`提交失败: ${error.message}`);
   }
 };
+
+// 个人贷款表单验证规则
+const loanValidationRules = reactive({
+  name: [
+    { required: true, message: "请输入姓名", trigger: "blur" },
+    { min: 2, max: 10, message: "姓名长度在2-10个字符之间", trigger: "blur" }
+  ],
+  amount: [
+    { required: true, message: "请输入贷款金额", trigger: "blur" },
+    { validator: validatePositiveNumber, message: "贷款金额必须为正数且最多保留2位小数", trigger: "blur" }
+  ],
+  rate: [
+    { required: true, message: "请输入贷款利率", trigger: "blur" },
+    { type: "number", min: 0, max: 30, message: "利率范围为0-30%", trigger: "blur" }
+  ],
+  term: [
+    { required: true, message: "请输入贷款周期", trigger: "blur" },
+    { type: "number", min: 1, max: 360, message: "贷款周期为1-360个月", trigger: "blur" }
+  ],
+  contact: [
+    { required: true, message: "请输入联系方式", trigger: "blur" },
+    { validator: validatePhone, message: "手机号格式不正确", trigger: "blur" }
+  ],
+  idNumber: [
+    { required: true, message: "请输入身份证号", trigger: "blur" },
+    { validator: validateIdCard, message: "身份证号格式不正确", trigger: "blur" }
+  ]
+});
+
+// 组合贷款表单验证规则
+const combinationValidationRules = reactive({
+  realName: loanValidationRules.name,
+  phone: loanValidationRules.contact,
+  idNum: loanValidationRules.idNumber,
+  amount: loanValidationRules.amount,
+  rate: loanValidationRules.rate,
+  term: loanValidationRules.term,
+  combinationName1: loanValidationRules.name,
+  combinationPhone1: loanValidationRules.contact,
+  combinationIdnum1: loanValidationRules.idNumber,
+  combinationName2: loanValidationRules.name,
+  combinationPhone2: loanValidationRules.contact,
+  combinationIdnum2: loanValidationRules.idNumber
+});
+
+// 表单引用
+const loanFormRef = ref(null);
+const combinationFormRef = ref(null);
 </script>
+<style scoped>
+@import "@/assets/form-validation.css";
+/* 其他样式 */
+</style>

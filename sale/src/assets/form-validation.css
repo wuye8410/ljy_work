@@ -1,0 +1,18 @@
+/* 错误提示文本样式 */
+.el-form-item__error {
+    font-size: 12px;
+    color: #f56c6c;
+    margin-top: 4px;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* 输入框错误状态样式 */
+.el-input__wrapper.is-error {
+    border-color: #f56c6c;
+    box-shadow: 0 0 0 1px rgba(245, 108, 108, 0.2);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
